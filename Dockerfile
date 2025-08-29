@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     libvips-dev \
     libglib2.0-dev \
-    libgobject-introspection-dev \
+    gobject-introspection \
     libgirepository1.0-dev \
     && ln -s /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
