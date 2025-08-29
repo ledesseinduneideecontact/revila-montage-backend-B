@@ -1,0 +1,61 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+buildArgs = []
+watchPatterns = ["**/*.js", "**/*.json", "src/**/*", "package*.json"]
+
+[deploy]
+numReplicas = 1
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+sleepApplication = false
+
+[[services]]
+name = "revila-backend"
+type = "web"
+region = "us-west1"
+
+[[services.ports]]
+port = 8080
+targetPort = 8080
+protocol = "HTTP"
+
+[services.resources]
+cpu = 2000
+memory = 4096
+disk = 20
+
+[services.healthcheck]
+path = "/api/health"
+interval = 30
+timeout = 10
+retries = 3
+initialDelaySeconds = 60
+
+[services.scaling]
+minReplicas = 1
+maxReplicas = 3
+targetCPUUtilization = 80
+targetMemoryUtilization = 80
+
+[[services.volumes]]
+name = "uploads"
+size = "5GB"
+mountPath = "/app/uploads"
+
+[[services.volumes]]
+name = "outputs"
+size = "10GB"
+mountPath = "/app/outputs"
+
+[env]
+NODE_ENV = "production"
+PORT = "8080"
+UPLOAD_MAX_SIZE = "104857600"
+CLEANUP_INTERVAL = "3600000"
+MAX_CONCURRENT_JOBS = "3"
+UPLOAD_DIR = "/app/uploads"
+OUTPUT_DIR = "/app/outputs"
+ASSETS_DIR = "/app/assets"
+FFMPEG_PATH = "/usr/bin/ffmpeg"
+LOG_LEVEL = "info"

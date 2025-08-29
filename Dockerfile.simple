@@ -1,0 +1,19 @@
+FROM node:18-alpine
+
+# Installer FFmpeg
+RUN apk add --no-cache ffmpeg
+
+WORKDIR /app
+
+# Créer un package.json minimal
+RUN echo '{"name":"simple-backend","version":"1.0.0","main":"simple-server.js"}' > package.json
+
+# Installer uniquement express et cors
+RUN npm install express cors --save
+
+# Copier le serveur simple
+COPY simple-server.js ./
+
+EXPOSE 8080
+
+CMD ["node", "simple-server.js"]

@@ -1,0 +1,53 @@
+# Backend Dockerfile pour Railway avec Editly
+FROM node:18-bullseye
+
+# Installer FFmpeg et toutes les dépendances nécessaires pour editly
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    libxi-dev \
+    pkg-config \
+    python3 \
+    python3-dev \
+    xvfb \
+    libglfw3-dev \
+    libgles2-mesa-dev \
+    libxxf86vm-dev \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configuration pour headless GL
+ENV DISPLAY=:99
+
+WORKDIR /app
+
+# Copier les fichiers de configuration
+COPY package*.json ./
+
+# Installer les dépendances avec canvas et gl pré-compilés si possible
+RUN npm install --production --build-from-source
+RUN npm rebuild canvas --build-from-source
+RUN npm rebuild gl --build-from-source
+
+# Copier le reste de l'application
+COPY . .
+
+# Créer les dossiers nécessaires
+RUN mkdir -p uploads outputs assets/music
+
+# Exposer le port
+EXPOSE ${PORT:-8080}
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 8080) + '/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
+
+# Démarrer l'application
+CMD ["npm", "start"]

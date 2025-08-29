@@ -1,0 +1,36 @@
+# Backend Dockerfile OPTIMISÉ - Build rapide avec FFmpeg uniquement
+FROM node:18-alpine
+
+# Installation rapide de FFmpeg (Alpine est plus léger)
+RUN apk add --no-cache ffmpeg
+
+WORKDIR /app
+
+# Copier uniquement package.json d'abord (pour cache Docker)
+COPY package.json ./
+
+# Créer un package.json temporaire sans editly et ses dépendances lourdes
+RUN node -e "const p=require('./package.json'); delete p.dependencies['editly']; delete p.dependencies['gl']; delete p.dependencies['canvas']; require('fs').writeFileSync('./package.json', JSON.stringify(p, null, 2));"
+
+# Install rapide sans les modules natifs
+RUN npm install --production --no-optional
+
+# Copier le reste de l'application
+COPY . .
+
+# Créer les dossiers nécessaires
+RUN mkdir -p uploads outputs assets/music
+
+# Forcer l'utilisation de FFmpeg
+ENV USE_FFMPEG_ONLY=true
+ENV NODE_ENV=production
+
+# Port
+EXPOSE ${PORT:-8080}
+
+# Healthcheck léger
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/api/health || exit 1
+
+# Démarrer
+CMD ["node", "src/server.js"]

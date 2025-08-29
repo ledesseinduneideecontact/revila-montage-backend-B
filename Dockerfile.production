@@ -1,0 +1,57 @@
+# Dockerfile optimisé pour production avec Editly
+FROM node:18-bullseye
+
+# Installer FFmpeg et les dépendances système nécessaires
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    libgl1-mesa-dev \
+    libxi-dev \
+    pkg-config \
+    python3 \
+    python3-dev \
+    libvips-dev \
+    libglib2.0-dev \
+    xvfb \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+# Définir le répertoire de travail
+WORKDIR /app
+
+# Copier les fichiers package
+COPY package*.json ./
+
+# Installer les dépendances Node.js
+RUN npm ci --only=production
+
+# Rebuild les modules natifs
+RUN npm rebuild
+
+# Copier le code de l'application
+COPY . .
+
+# Créer les répertoires nécessaires
+RUN mkdir -p uploads outputs assets/music
+
+# Configuration pour Xvfb (nécessaire pour gl/editly)
+ENV DISPLAY=:99
+
+# Exposer le port
+EXPOSE 8080
+
+# Script de démarrage
+RUN echo '#!/bin/bash\nXvfb :99 -screen 0 1024x768x24 &\nsleep 2\nnode server.js' > /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:8080/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
+
+# Commande de démarrage
+CMD ["/app/start.sh"]
